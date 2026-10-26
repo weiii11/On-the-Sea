@@ -1,0 +1,12 @@
+import * as THREE from 'three';
+const ivory=new THREE.MeshStandardMaterial({color:0xe1e5dd,roughness:.8,side:THREE.DoubleSide});
+const grey=new THREE.MeshStandardMaterial({color:0x748d9a,roughness:.8,side:THREE.DoubleSide});
+const tip=new THREE.MeshStandardMaterial({color:0x374b59,roughness:.9,side:THREE.DoubleSide});
+function mesh(points,material){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(points,3));g.computeVertexNormals();return new THREE.Mesh(g,material);}
+function gull(){const group=new THREE.Group(),body=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),ivory);body.scale.set(.34,.09,.10);group.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.09,8,6),ivory);head.position.set(.30,.055,0);group.add(head);
+ const wings=[];for(const side of [-1,1]){const wing=new THREE.Group();const p=(x,y,z)=>[x,y,z*side];wing.add(mesh([...p(.14,0,.04),...p(.04,.065,.55),...p(-.30,0,.58),...p(.14,0,.04),...p(-.30,0,.58),...p(-.24,0,.04),...p(.04,.065,.55),...p(-.38,.02,1.12),...p(-.30,0,.58)],grey));wing.add(mesh([...p(-.20,.04,.87),...p(-.49,0,1.31),...p(-.38,.02,1.12),...p(-.20,.04,.87),...p(-.38,.02,1.12),...p(-.29,.01,.85)],tip));wings.push({wing,side});group.add(wing);}
+ group.add(mesh([-.25,0,0,-.63,.015,-.16,-.61,.015,.16],ivory));group.scale.setScalar(1.25);group.visible=false;return{group,wings};}
+export function createGulls(scene,random=Math.random){const birds=Array.from({length:2},()=>{const b=gull();scene.add(b.group);return b;});let next=23,flight=null,count=0,active=0;
+ return {update(t){if(!flight&&t>=next){count++;const dir=random()<.55?1:-1;flight={start:t,duration:31+random()*9,dir,number:random()<.70?1:2,seed:random()*6,depth:-85-random()*45};next=t+75+random()*65;}
+ active=0;for(let i=0;i<birds.length;i++){const b=birds[i];if(!flight||i>=flight.number){b.group.visible=false;continue;}const u=(t-flight.start-i*1.4)/flight.duration;if(u<0||u>1){b.group.visible=false;continue;}active++;b.group.visible=true;const x=flight.dir*(-65+130*u);b.group.position.set(x,10+Math.sin(u*Math.PI)*4+i*2,flight.depth-30+70*u+Math.sin(u*3+flight.seed)*5+i*8);b.group.rotation.set(.18*Math.sin(u*7+flight.seed),flight.dir>0?-.50:Math.PI+.50,.025*Math.sin(t*.5));const phase=(t+i*2+flight.seed)%12;const effort=phase<2.2?Math.sin(Math.PI*phase/2.2)**2:0;for(const w of b.wings)w.wing.rotation.x=w.side*(.07+effort*.27*Math.sin(t*5.5+i));}
+ if(flight&&t>flight.start+flight.duration+3){flight=null;for(const b of birds)b.group.visible=false;}},state:()=>({active,passes:count,next})};}
